@@ -33,16 +33,17 @@
 
 (defn q
   [schema query-string]
-  (-> (lacinia/execute schema query-string nil nil)
-      simplify))
-
-
-(defn create-document [db collection doc]
-  (mc/insert-and-return db collection (merge {:_id (ObjectId.)} doc)))
+  (simplify (lacinia/execute schema query-string nil nil)))
 
 (defn create-documents
   [db data k]
-  (doall (map (partial create-document db (name k)) (get data k))))
+  (let [collection (name k)
+        docs (get data k)]
+    (doall
+      (map #(mc/insert-and-return db
+                                  collection
+                                  (merge {:_id (ObjectId.)} %))
+           docs))))
 
 (defn load-fixture
   [db fname]
@@ -51,14 +52,19 @@
                  edn/read-string)]
     (doall (map (partial create-documents db data) [:designers :games]))))
 
-(deftest can-find-designers-on-a-game
+(deftest loads-the-schema
   (let [server (MongoServer. (MemoryBackend.))
         client (mg/connect (ServerAddress. (.bind server)) (mg/mongo-options {}))
         db (mg/get-db client "test")
         schema (load-schema db)
-        loaded (load-fixture db "data.edn")]
-    (is (= {:data {:game_by_id {:name "7 Wonders: Duel"}}}
-           (q schema "{ game_by_id(id: \"1237\"){ name }}")))
-    (is (= {:data {:game_by_id {:name "7 Wonders: Duel", :designers [{:name "Antoine Bauza"} {:name "Bruno Cathala"}]}}}
-           (q schema "{ game_by_id(id: \"1237\") { name designers { name }}}")))))
+        _ (load-fixture db "data.edn")]
+    (testing "Can pull back a game by id"
+      (is (= {:data {:game_by_id {:name "7 Wonders: Duel" :max_players 2}}}
+             (q schema "{ game_by_id(id: \"1237\"){ name max_players}}"))))
+    (testing "Can integrate with designer data"
+      (is (= {:data {:game_by_id {:name "7 Wonders: Duel", :designers [{:name "Antoine Bauza"} {:name "Bruno Cathala"}]}}}
+             (q schema "{ game_by_id(id: \"1237\") { name designers { name }}}"))))
+    (testing "Can integrate with a designers games"
+      (is (= {:data {:game_by_id {:designers [{:games [{:name "Tiny Epic Galaxies"}]}]}}}
+             (q schema "{ game_by_id(id: \"1236\") {designers { games { name }}}}"))))))
 
