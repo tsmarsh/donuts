@@ -6,5 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.walmartlabs/lacinia "0.38.0"]
                  [com.walmartlabs/lacinia-pedestal "0.15.0"]
-                 [io.aviso/logging "0.3.2"]]
-  :repl-options {:init-ns droids.core})
+                 [io.aviso/logging "0.3.2"]
+                 [de.bwaldvogel/mongo-java-server "1.38.0"]
+                 [com.novemberain/monger "3.5.0"]]
+  :repl-options {:init-ns user})

@@ -3,49 +3,37 @@
     [clojure.java.io :as io]
     [com.walmartlabs.lacinia.util :as util]
     [com.walmartlabs.lacinia.schema :as schema]
-    [clojure.edn :as edn]))
+    [clojure.edn :as edn]
+    [monger.collection :as mc]))
 
 
 
 (defn resolve-game-by-id
-  [games-map context args value]
+  [db context args value]
   (let [{:keys [id]} args]
-    (get games-map id)))
+    (first (mc/find-maps db "games" {:id id}))))
 
 (defn resolve-board-game-designers
-  [designers-map context args board-game]
-  (->> board-game
-       :designers
-       (map designers-map)))
+  [db context args board-game]
+  (map (fn [designer] (first (mc/find-maps db "designers" {:id designer}))) (:designers board-game)))
 
 (defn resolve-designer-games
-  [games-map context args designer]
+  [db context args designer]
   (let [{:keys [id]} designer]
-    (->> games-map
-         vals
-         (filter #(-> % :designers (contains? id))))))
+    (mc/find-maps db "games" {:designers {"$elemMatch" {"$eq" id}}})))
 
-(defn entity-map
-  [data k]
-  (reduce #(assoc %1 (:id %2) %2)
-          {}
-          (get data k)))
+
 
 (defn resolver-map
-  []
-  (let [data (-> (io/resource "data.edn")
-                     slurp
-                     edn/read-string)
-        games-map (entity-map data :games)
-        designers-map (entity-map data :designers)]
-    {:query/game-by-id (partial resolve-game-by-id games-map)
-     :BoardGame/designers (partial resolve-board-game-designers designers-map)
-     :Designer/games (partial resolve-designer-games games-map)}))
+  [db]
+    {:query/game-by-id (partial resolve-game-by-id db)
+     :BoardGame/designers (partial resolve-board-game-designers db)
+     :Designer/games (partial resolve-designer-games db)})
 
 (defn load-schema
-  []
+  [db]
   (-> (io/resource "schema.edn")
       slurp
       edn/read-string
-      (util/attach-resolvers (resolver-map))
+      (util/attach-resolvers (resolver-map db))
       schema/compile))

@@ -5,37 +5,11 @@
     [clojure.walk :as walk]
     [com.walmartlabs.lacinia.pedestal :as lp]
     [io.pedestal.http :as http]
-    [clojure.java.browse :refer [browse-url]])
-  (:import (clojure.lang IPersistentMap)))
-
-(def schema (s/load-schema))
-
-(defn simplify
-  "Converts all ordered maps nested within the map into standard hash maps, and
-   sequences into vectors, which makes for easier constants in the tests, and eliminates ordering problems."
-  [m]
-  (walk/postwalk
-    (fn [node]
-      (cond
-        (instance? IPersistentMap node)
-        (into {} node)
-
-        (seq? node)
-        (vec node)
-
-        :else
-        node))
-    m))
-
-
-(defn q
-  [query-string]
-  (-> (lacinia/execute schema query-string nil nil)
-      simplify))
+    [clojure.java.browse :refer [browse-url]]))
 
 (defonce server nil)
 
-(defn start-server
+#_(defn start-server
   [_]
   (let [server (-> schema
                    (lp/service-map {:graphiql true})
@@ -44,17 +18,17 @@
     (browse-url "http://localhost:8888/")
     server))
 
-(defn stop-server
+#_(defn stop-server
   [server]
   (http/stop server)
   nil)
 
-(defn start
+#_(defn start
   []
   (alter-var-root #'server start-server)
   :started)
 
-(defn stop
+#_(defn stop
   []
   (alter-var-root #'server stop-server)
   :stopped)
