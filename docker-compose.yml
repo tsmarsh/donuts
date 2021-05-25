@@ -1,0 +1,15 @@
+version: '2.4'
+
+services:
+  games:
+    image: tsmarsh/games
+    restart: unless-stopped
+    ports:
+      - 8888:80
+    environment:
+     - DB_NAME=dev
+     - DB_ADDRESS=mongodb:27017
+  mongodb:
+    image: mongo
+    ports:
+    - 27017:27017

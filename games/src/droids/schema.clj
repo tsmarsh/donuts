@@ -4,9 +4,8 @@
     [com.walmartlabs.lacinia.util :as util]
     [com.walmartlabs.lacinia.schema :as schema]
     [clojure.edn :as edn]
-    [monger.collection :as mc]))
-
-
+    [monger.collection :as mc]
+    [monger.core :as mg]))
 
 (defn resolve-game-by-id
   [db context args value]
@@ -21,7 +20,6 @@
   [db context args designer]
   (let [{:keys [id]} designer]
     (mc/find-maps db "games" {:designers {"$elemMatch" {"$eq" id}}})))
-
 
 
 (defn resolver-map

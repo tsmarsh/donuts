@@ -5,30 +5,38 @@
     [clojure.walk :as walk]
     [com.walmartlabs.lacinia.pedestal :as lp]
     [io.pedestal.http :as http]
-    [clojure.java.browse :refer [browse-url]]))
+    [clojure.java.browse :refer [browse-url]]
+    [monger.core :as mg])
+  (:import (de.bwaldvogel.mongo MongoServer)
+           (de.bwaldvogel.mongo.backend.memory MemoryBackend)
+           (com.mongodb ServerAddress)))
 
 (defonce server nil)
 
-#_(defn start-server
+(defn start-server
   [_]
-  (let [server (-> schema
+  (let [db-server (MongoServer. (MemoryBackend.))
+        client (mg/connect (ServerAddress. (.bind server)) (mg/mongo-options {}))
+        db (mg/get-db client "test")
+        schema (s/load-schema db)
+        server (-> schema
                    (lp/service-map {:graphiql true})
                    http/create-server
                    http/start)]
     (browse-url "http://localhost:8888/")
     server))
 
-#_(defn stop-server
+(defn stop-server
   [server]
   (http/stop server)
   nil)
 
-#_(defn start
+(defn start
   []
   (alter-var-root #'server start-server)
   :started)
 
-#_(defn stop
+(defn stop
   []
   (alter-var-root #'server stop-server)
   :stopped)

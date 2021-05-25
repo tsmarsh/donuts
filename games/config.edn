@@ -1,0 +1,8 @@
+{
+
+ ;; CONFIG ENTRIES:
+
+ droids.core/db-name        #config/env "DB_NAME"
+
+ droids.core/server-address #config/env "DB_ADDRESS"
+ }
