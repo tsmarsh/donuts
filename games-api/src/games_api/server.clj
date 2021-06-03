@@ -1,5 +1,5 @@
 (ns games-api.server
-  (:require [games-api.core :as service]
+  (:require [games-api.service-poc :as service]
             [io.pedestal.http :as bootstrap])
   (:gen-class))
 
