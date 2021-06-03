@@ -5,7 +5,6 @@
             [io.pedestal.http.route :as route]
             [outpace.config :refer [defconfig]]))
 
-(def noun (atom {}))
 
 (defn response [status body & {:as headers}]
   {:status status :body body :headers headers})
@@ -63,8 +62,8 @@
     {
      :name  :doc-reader
      :enter (fn [ctx]
-              (let [id (get-in ctx [:request :path-params :id])
-                    n (get @db id "world")]
+              (let [id (get-in ctx [:request :path-params :id])]
+                (swap! db dissoc id)
                 (assoc ctx :response (no-content "DELETED"))))}))
 
 

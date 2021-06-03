@@ -10,7 +10,6 @@
 (defconfig ^String server-address "localhost:27017")
 (defconfig ^String db-name "test")
 
-(println "Server Address: " server-address "DB_ADDRESS: " (System/getenv "DB_ADDRESS"))
 
 (defn -main []
     (let [client (mg/connect (ServerAddress. server-address) (mg/mongo-options {}))
