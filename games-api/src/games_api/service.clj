@@ -24,17 +24,17 @@
              (assoc context :response response)))})
 
 
-(def read-doc
+(defn read-doc [db]
   (interceptor
     {
      :name  :doc-reader
      :enter (fn [ctx]
               (let [id (get-in ctx [:request :path-params :id])
-                    n (get @noun id "world")]
+                    n (get @db id "world")]
                 (assoc ctx :response (ok (format "Hello, %s!", n)))))}))
 
 
-(def write-doc
+(defn write-doc [db]
   (interceptor
     {
      :name  :doc-writer
@@ -42,11 +42,11 @@
               (let [body (slurp (:body req))
                     id (get-in req [:path-params :id])
                     res (:response ctx)]
-                (swap! noun assoc id body)
+                (swap! db assoc id body)
                 (assoc ctx :response (merge res (created body)))))}))
 
 
-(def update-doc
+(defn update-doc [db]
   (interceptor
     {
      :name  :doc-updater
@@ -54,35 +54,35 @@
               (let [body (slurp (:body req))
                     id (get-in req [:path-params :id])
                     res (:response ctx)]
-                (swap! noun assoc id body)
+                (swap! db assoc id body)
                 (assoc ctx :response (merge res (accepted body)))))}))
 
 
-(def delete-doc
+(defn delete-doc [db]
   (interceptor
     {
      :name  :doc-reader
      :enter (fn [ctx]
               (let [id (get-in ctx [:request :path-params :id])
-                    n (get @noun id "world")]
+                    n (get @db id "world")]
                 (assoc ctx :response (no-content "DELETED"))))}))
 
 
 
 (def api-name "document")
 
-(def routes
+(defn routes [db]
   (route/expand-routes
     #{
-      [(format "/%s/:id" api-name) :put write-doc :route-name :create]
-      [(format "/%s/:id" api-name) :get read-doc :route-name :read]
-      [(format "/%s/:id" api-name) :post update-doc :route-name :update]
-      [(format "/%s/:id" api-name) :delete delete-doc :route-name :delete]
+      [(format "/%s/:id" api-name) :put (write-doc db) :route-name :create]
+      [(format "/%s/:id" api-name) :get (read-doc db) :route-name :read]
+      [(format "/%s/:id" api-name) :post (update-doc db) :route-name :update]
+      [(format "/%s/:id" api-name) :delete (delete-doc db) :route-name :delete]
       }))
 
 
-(def service-map
-  {::http/routes routes
+(defn service-map [rtes]
+  {::http/routes rtes
    ::http/type   :jetty
    ::http/port   8890})
 

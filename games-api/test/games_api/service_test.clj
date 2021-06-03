@@ -22,15 +22,19 @@
 ;
 ;(def db (mg/get-db client "test"))
 
+(def db (atom {}))
+
+(def routes (g/routes db))
+
 (def service (:io.pedestal.http/service-fn
-               (io.pedestal.http/create-servlet g/service-map)))
+               (io.pedestal.http/create-servlet (g/service-map routes))))
 
 (def url-for
   "Test url generator."
-  (route/url-for-routes g/routes))
+  (route/url-for-routes routes))
 
 (defn before [f]
-  (reset! g/noun {})
+  (reset! db {})
   (f))
 
 (use-fixtures :each before)
