@@ -29,7 +29,11 @@
   "Test url generator."
   (route/url-for-routes g/routes))
 
+(defn before [f]
+  (reset! g/noun {})
+  (f))
 
+(use-fixtures :each before)
 
 (deftest read-test
   (is (= "Hello, world!" (:body (response-for service :get (url-for :read
@@ -47,7 +51,7 @@
                                       :path-params {:id 1112}) :body "Tilda")
   (is (= "Hello, Tilda!" (:body (response-for service :get (url-for :read :path-params {:id 1112}))))))
 
-(deftest update-test
+(deftest delete-test
   (response-for service :put (url-for :create
                                       :path-params {:id 1010}) :body "Archer")
   (response-for service :delete (url-for :update

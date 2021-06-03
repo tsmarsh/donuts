@@ -7,36 +7,13 @@
 
 (def noun (atom {}))
 
-(def respond-hello
-  (interceptor
-    {
-     :name  :respond-hello
-     :enter (fn [ctx]
-              (let [id (get-in ctx [:request :path-params :id])
-                    n (get @noun id "world")]
-                (assoc ctx :response
-                           {:status 200 :body (format "Hello, %s!", n)})))
-     }))
-
-(defn write-noun [{:keys [body path-params] :as request}]
-  (swap! noun assoc (:id path-params) (slurp body))
-  {:status 200 :body "OK"})
-
-(defn update-noun [{:keys [body path-params] :as request}]
-  (swap! noun assoc (:id path-params) (slurp body))
-  {:status 200 :body "OK"})
-
-(defn delete-noun [{:keys [path-params] :as request}]
-  (swap! noun dissoc (:id path-params))
-  {:status 200 :body "OK"})
-
 (defn response [status body & {:as headers}]
   {:status status :body body :headers headers})
 
 (def ok (partial response 200))
 (def created (partial response 201))
 (def accepted (partial response 202))
-
+(def no-content (partial response 204))
 
 (def echo
   {:name :echo
@@ -46,15 +23,61 @@
                  response (ok context)]
              (assoc context :response response)))})
 
+
+(def read-doc
+  (interceptor
+    {
+     :name  :doc-reader
+     :enter (fn [ctx]
+              (let [id (get-in ctx [:request :path-params :id])
+                    n (get @noun id "world")]
+                (assoc ctx :response (ok (format "Hello, %s!", n)))))}))
+
+
+(def write-doc
+  (interceptor
+    {
+     :name  :doc-writer
+     :enter (fn [{req :request :as ctx}]
+              (let [body (slurp (:body req))
+                    id (get-in req [:path-params :id])
+                    res (:response ctx)]
+                (swap! noun assoc id body)
+                (assoc ctx :response (merge res (created body)))))}))
+
+
+(def update-doc
+  (interceptor
+    {
+     :name  :doc-updater
+     :enter (fn [{req :request :as ctx}]
+              (let [body (slurp (:body req))
+                    id (get-in req [:path-params :id])
+                    res (:response ctx)]
+                (swap! noun assoc id body)
+                (assoc ctx :response (merge res (accepted body)))))}))
+
+
+(def delete-doc
+  (interceptor
+    {
+     :name  :doc-reader
+     :enter (fn [ctx]
+              (let [id (get-in ctx [:request :path-params :id])
+                    n (get @noun id "world")]
+                (assoc ctx :response (no-content "DELETED"))))}))
+
+
+
 (def api-name "document")
 
 (def routes
   (route/expand-routes
     #{
-      [(format "/%s/:id" api-name) :put write-noun :route-name :create]
-      [(format "/%s/:id" api-name) :get respond-hello :route-name :read]
-      [(format "/%s/:id" api-name) :post update-noun :route-name :update]
-      [(format "/%s/:id" api-name) :delete delete-noun :route-name :delete]
+      [(format "/%s/:id" api-name) :put write-doc :route-name :create]
+      [(format "/%s/:id" api-name) :get read-doc :route-name :read]
+      [(format "/%s/:id" api-name) :post update-doc :route-name :update]
+      [(format "/%s/:id" api-name) :delete delete-doc :route-name :delete]
       }))
 
 
