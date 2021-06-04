@@ -14,15 +14,19 @@
            (de.bwaldvogel.mongo MongoServer)
            (de.bwaldvogel.mongo.backend.memory MemoryBackend)))
 
-#_(def url-for (partial tf/url-for (deref routes)))
 
-;(def db-server (MongoServer. (MemoryBackend.)))
-;
-;(def client (mg/connect (ServerAddress. ^InetSocketAddress (.bind db-server)) (mg/mongo-options {})))
-;
-;(def db (mg/get-db client "test"))
+(def backend (MemoryBackend.))
+
+(def db-server (MongoServer. backend))
+
+(def client (mg/connect (ServerAddress. ^InetSocketAddress (.bind db-server)) (mg/mongo-options {})))
+
+(def db (mg/get-db client "test"))
 
 (def db (atom {}))
+(defn before [f]
+  (reset! db {})
+  (f))
 
 (def routes (g/routes db))
 
@@ -33,9 +37,11 @@
   "Test url generator."
   (route/url-for-routes routes))
 
-(defn before [f]
-  (reset! db {})
-  (f))
+;(defn before [f]
+;  (.dropDatabase backend "test")
+;  (f))
+
+
 
 (use-fixtures :each before)
 

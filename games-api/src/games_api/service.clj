@@ -3,8 +3,28 @@
             [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.route :as route]
-            [outpace.config :refer [defconfig]]))
+            [outpace.config :refer [defconfig]])
+  (:import (clojure.lang Atom)))
 
+(defprotocol DocumentRepository
+  (writeDoc [db id body])
+  (readDoc [db id])
+  (changeDoc [db id body])
+  (deleteDoc [db id]))
+
+
+(extend Atom
+  DocumentRepository
+  {
+   :writeDoc (fn [db id body]
+               (swap! db assoc id body))
+   :readDoc (fn [db id]
+              (get @db id "world"))
+   :changeDoc (fn [db id body]
+                (swap! db assoc id body))
+   :deleteDoc (fn [db id]
+                (swap! db dissoc id))
+   })
 
 (defn response [status body & {:as headers}]
   {:status status :body body :headers headers})
@@ -23,17 +43,17 @@
              (assoc context :response response)))})
 
 
-(defn read-doc [db]
+(defn reader [db]
   (interceptor
     {
      :name  :doc-reader
      :enter (fn [ctx]
               (let [id (get-in ctx [:request :path-params :id])
-                    n (get @db id "world")]
+                    n (readDoc db id)]
                 (assoc ctx :response (ok (format "Hello, %s!", n)))))}))
 
 
-(defn write-doc [db]
+(defn writer [db]
   (interceptor
     {
      :name  :doc-writer
@@ -41,11 +61,11 @@
               (let [body (slurp (:body req))
                     id (get-in req [:path-params :id])
                     res (:response ctx)]
-                (swap! db assoc id body)
+                (writeDoc db id body)
                 (assoc ctx :response (merge res (created body)))))}))
 
 
-(defn update-doc [db]
+(defn updater [db]
   (interceptor
     {
      :name  :doc-updater
@@ -53,17 +73,17 @@
               (let [body (slurp (:body req))
                     id (get-in req [:path-params :id])
                     res (:response ctx)]
-                (swap! db assoc id body)
+                (changeDoc db id body)
                 (assoc ctx :response (merge res (accepted body)))))}))
 
 
-(defn delete-doc [db]
+(defn deleter [db]
   (interceptor
     {
      :name  :doc-reader
      :enter (fn [ctx]
               (let [id (get-in ctx [:request :path-params :id])]
-                (swap! db dissoc id)
+                (deleteDoc db id)
                 (assoc ctx :response (no-content "DELETED"))))}))
 
 
@@ -73,10 +93,10 @@
 (defn routes [db]
   (route/expand-routes
     #{
-      [(format "/%s/:id" api-name) :put (write-doc db) :route-name :create]
-      [(format "/%s/:id" api-name) :get (read-doc db) :route-name :read]
-      [(format "/%s/:id" api-name) :post (update-doc db) :route-name :update]
-      [(format "/%s/:id" api-name) :delete (delete-doc db) :route-name :delete]
+      [(format "/%s/:id" api-name) :put (writer db) :route-name :create]
+      [(format "/%s/:id" api-name) :get (reader db) :route-name :read]
+      [(format "/%s/:id" api-name) :post (updater db) :route-name :update]
+      [(format "/%s/:id" api-name) :delete (deleter db) :route-name :delete]
       }))
 
 
