@@ -47,8 +47,7 @@
 (use-fixtures :each before)
 
 (deftest read-test
-  (is (= "Hello, world!" (:body (response-for service :get (url-for :read
-                                                                    :path-params {:id 1414}))))))
+  (is (= "" (:body (response-for service :get (url-for :read :path-params {:id 1414}))))))
 
 (deftest write-test
   (response-for service :put (url-for :create
@@ -59,16 +58,22 @@
   (is (= {"id" "1414" "name" "Tom"}
          (-> (response-for service :get "/document/1414")
              :body
-             json/decode)))
+             json/decode))))
 
-  (deftest update-test
-    (response-for service :put (url-for :create
-                                        :path-params {:id 1112})
-                  :body (json/encode {:name "Archer"})
-                  :headers {:content-type "application/json"})
-    (response-for service :post (url-for :update
-                                         :path-params {:id 1112}) :body (json/encode {:name "Tilda"}))
-    (is (= {"id" "1112" "name" "Tilda"} (:body (response-for service :get (url-for :read :path-params {:id 1112})))))))
+(deftest update-test
+  (response-for service :put (url-for :create
+                                      :path-params {:id 1112})
+                :body (json/encode {:name "Archer"})
+                :headers {"Content-Type" "application/json"})
+  (response-for service
+                :post (url-for :update
+                               :path-params {:id 1112})
+                :body (json/encode {:name "Tilda"})
+                :headers {"Content-Type" "application/json"})
+  (is (= {"id" "1112" "name" "Tilda"} (-> (response-for service :get (url-for :read :path-params {:id 1112}))
+                                          :body
+                                          json/decode))))
+
 
 (deftest delete-test
   (response-for service :put (url-for :create

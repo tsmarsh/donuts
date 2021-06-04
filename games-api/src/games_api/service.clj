@@ -51,7 +51,7 @@
     {
      :name  :doc-updater
      :enter (fn [{req :request :as ctx}]
-              (let [body (get req :body-params)
+              (let [body (get req :json-params)
                     id (get-in req [:path-params :id])
                     res (:response ctx)]
                 (r/changeDoc db id body)

@@ -1,5 +1,6 @@
 (ns games-api.repository
   (:require [monger.collection :as mc]
+            [monger.operators :refer [$set]]
             [outpace.config :refer [defconfig]])
   (:import (clojure.lang Atom)
            (com.mongodb DB)
@@ -35,7 +36,7 @@
    :readDoc   (fn [db id]
                 (dissoc (first (mc/find-maps db doc-name {:id id})) :_id))
    :changeDoc (fn [db id body]
-                (mc/update db doc-name {:id id} body))
+                (mc/update db doc-name {:id id} {$set body}))
    :deleteDoc (fn [db id]
                 (mc/remove db doc-name {:id id}))
    })
