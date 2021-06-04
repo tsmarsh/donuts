@@ -7,7 +7,8 @@
             [monger.core :as mg]
             [schema-generators.generators :as sg]
             [io.pedestal.test :refer :all]
-            [io.pedestal.http.route :as route])
+            [io.pedestal.http.route :as route]
+            [cheshire.core :as json])
 
   (:import (com.mongodb ServerAddress)
            (java.net InetSocketAddress)
@@ -23,10 +24,10 @@
 
 (def db (mg/get-db client "test"))
 
-(def db (atom {}))
-(defn before [f]
-  (reset! db {})
-  (f))
+;(def db (atom {}))
+;(defn before [f]
+;  (reset! db {})
+;  (f))
 
 (def routes (g/routes db))
 
@@ -37,9 +38,9 @@
   "Test url generator."
   (route/url-for-routes routes))
 
-;(defn before [f]
-;  (.dropDatabase backend "test")
-;  (f))
+(defn before [f]
+  (.dropDatabase backend "test")
+  (f))
 
 
 
@@ -51,21 +52,29 @@
 
 (deftest write-test
   (response-for service :put (url-for :create
-                                      :path-params {:id 1414}) :body "Tom")
-  (is (= "Hello, Tom!" (:body (response-for service :get "/document/1414")))))
+                                      :path-params {:id 1414})
+                :body (json/encode {:name "Tom"})
+                :headers {"Content-Type" "application/json"})
 
-(deftest update-test
-  (response-for service :put (url-for :create
-                                      :path-params {:id 1112}) :body "Archer")
-  (response-for service :post (url-for :update
-                                      :path-params {:id 1112}) :body "Tilda")
-  (is (= "Hello, Tilda!" (:body (response-for service :get (url-for :read :path-params {:id 1112}))))))
+  (is (= {"id" "1414" "name" "Tom"}
+         (-> (response-for service :get "/document/1414")
+             :body
+             json/decode)))
+
+  (deftest update-test
+    (response-for service :put (url-for :create
+                                        :path-params {:id 1112})
+                  :body (json/encode {:name "Archer"})
+                  :headers {:content-type "application/json"})
+    (response-for service :post (url-for :update
+                                         :path-params {:id 1112}) :body (json/encode {:name "Tilda"}))
+    (is (= {"id" "1112" "name" "Tilda"} (:body (response-for service :get (url-for :read :path-params {:id 1112})))))))
 
 (deftest delete-test
   (response-for service :put (url-for :create
-                                      :path-params {:id 1010}) :body "Archer")
+                                      :path-params {:id 1010}) :body (json/encode {:name "Tom"}))
   (response-for service :delete (url-for :update
-                                       :path-params {:id 1010}))
-  (is (= "Hello, world!" (:body (response-for service :get (url-for :read :path-params {:id 1112}))))))
+                                         :path-params {:id 1010}))
+  (is (= "" (:body (response-for service :get (url-for :read :path-params {:id 1112}))))))
 
 

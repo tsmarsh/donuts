@@ -2,8 +2,7 @@
   (:require [io.pedestal.http :as bootstrap]
             [io.pedestal.interceptor.chain :refer [terminate]]
             [io.pedestal.interceptor :refer [interceptor]]
-            [pedestal-api
-             [core :as api]]
+            [pedestal-api.core :as api]
             [schema.core :as s]
             [games-api.schema :as gs]
             [monger.collection :as mc]
