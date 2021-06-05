@@ -20,7 +20,7 @@
    :writeDoc  (fn [db id body]
                 (swap! db assoc id body))
    :readDoc   (fn [db id]
-                (get @db id "world"))
+                (get @db id))
    :changeDoc (fn [db id body]
                 (swap! db assoc id body))
    :deleteDoc (fn [db id]
