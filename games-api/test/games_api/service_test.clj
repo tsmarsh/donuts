@@ -1,7 +1,7 @@
 (ns games-api.service-test
   (:require [clojure.test :refer :all]
             [games-api.test-fixture :as tf]
-            [games-api.schema :as s]
+            [schema.core :as s]
             [clj-http.client :as http]
             [games-api.service :as g]
             [monger.core :as mg]
@@ -25,12 +25,10 @@
 
 (def db (mg/get-db client "test"))
 
-;(def db (atom {}))
-;(defn before [f]
-;  (reset! db {})
-;  (f))
+(s/defschema testSchema {"name" s/Str
+                         (s/optional-key "id") s/Str})
 
-(def routes (g/routes db))
+(def routes (g/routes db testSchema))
 
 (def service (:io.pedestal.http/service-fn
                (io.pedestal.http/create-servlet (g/service-map routes))))
@@ -48,7 +46,7 @@
 (use-fixtures :each before)
 
 (deftest read-test
-  (is (= "" (:body (response-for service :get (url-for :read :path-params {:id 1414}))))))
+  (is (= "Document not found" (:body (response-for service :get (url-for :read :path-params {:id 1414}))))))
 
 (deftest write-test
   (response-for service :put (url-for :create
@@ -56,10 +54,12 @@
                 :body (json/encode {:name "Tom"})
                 :headers {"Content-Type" "application/json"})
 
-  (is (= {"id" "1414" "name" "Tom"}
-         (-> (response-for service :get "/document/1414")
-             :body
-             json/decode))))
+  (let [body (:body (response-for service
+                                  :get (url-for :read :path-params {:id 1414})
+                                  :headers {"Accept" "application/json"}))]
+    (is (= {"id" "1414" "name" "Tom"}
+           (-> body
+               json/decode)))))
 
 (deftest update-test
   (response-for service :put (url-for :create
@@ -71,9 +71,12 @@
                                :path-params {:id 1112})
                 :body (json/encode {:name "Tilda"})
                 :headers {"Content-Type" "application/json"})
-  (is (= {"id" "1112" "name" "Tilda"} (-> (response-for service :get (url-for :read :path-params {:id 1112}))
-                                          :body
-                                          json/decode))))
+  (let [body (response-for service
+                           :get (url-for :read :path-params {:id 1112})
+                           :headers {"Accept" "application/json"})]
+    (is (= {"id" "1112" "name" "Tilda"} (-> body
+                                            :body
+                                            json/decode)))))
 
 
 (deftest delete-test
@@ -81,6 +84,6 @@
                                       :path-params {:id 1010}) :body (json/encode {:name "Tom"}))
   (response-for service :delete (url-for :update
                                          :path-params {:id 1010}))
-  (is (= "" (:body (response-for service :get (url-for :read :path-params {:id 1112}))))))
+  (is (= "Document not found" (:body (response-for service :get (url-for :read :path-params {:id 1112}))))))
 
 
