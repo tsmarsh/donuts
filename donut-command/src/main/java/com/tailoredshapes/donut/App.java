@@ -1,5 +1,7 @@
 package com.tailoredshapes.donut;
 
+import com.mongodb.client.MongoDatabase;
+import com.tailoredshapes.stash.Stash;
 import spark.Service;
 
 import java.util.logging.Logger;
@@ -13,14 +15,22 @@ public class App {
 
     private static Logger log = Logger.getLogger(App.class.getName());
 
-    public App(int port){
+    public App(int port, String prefix, Repository rep){
         service = ignite();
         service.port(port);
 
-        service.get("/", ((req, res) -> {
+        service.get("/%s/:id".formatted(prefix), ((req, res) -> {
+            Stash doc = rep.readDoc(Integer.parseInt(req.params("id")));
             res.status(200);
-            res.body("OK");
-            return "OK";
+            res.header("Content-Type", "application/json");
+            return doc.toJSONString();
+        }));
+
+        service.put("/%s/:id".formatted(prefix), ((req, res) -> {
+            Stash doc = rep.writeDoc(Integer.parseInt(req.params("id")), Stash.parseJSON(req.body()));
+            res.status(200);
+            res.header("Content-Type", "application/json");
+            return doc.toJSONString();
         }));
     }
 
