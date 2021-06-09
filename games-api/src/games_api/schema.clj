@@ -3,7 +3,7 @@
 
 
 
-(s/defschema Document {
+(s/defschema Game {
                        :id                           s/Uuid
                        :name                         s/Str
                        (s/optional-key :summary)     s/Str
@@ -13,15 +13,7 @@
                        (s/optional-key :play_time)   s/Int})
 
 
-;(s/defschema Designer {:id                     s/Uuid
-;                       :name                   s/Str
-;                       (s/optional-key :url)   s/Str
-;                       (s/optional-key :games) [Game]})
-
-;(s/defschema Pet
-;             {:name s/Str
-;              :type s/Str
-;              :age  s/Int})
-;
-;(s/defschema PetWithId
-;             (assoc Pet (s/optional-key :id) s/Uuid))
+(s/defschema Designer {:id                     s/Uuid
+                       :name                   s/Str
+                       (s/optional-key :url)   s/Str
+                       (s/optional-key :games) [Game]})

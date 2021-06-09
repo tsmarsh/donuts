@@ -9,7 +9,13 @@
             [pedestal-api.routes :as api]
             [pedestal-api.core :as capi]
             [schema.core :as s]
-            [route-swagger.doc :as sw.doc]))
+            [route-swagger.doc :as sw.doc]
+            [monger.core :as mg]
+            [games-api.schema :as gs])
+  (:import (de.bwaldvogel.mongo.backend.memory MemoryBackend)
+           (de.bwaldvogel.mongo MongoServer)
+           (com.mongodb ServerAddress)
+           (java.net InetSocketAddress)))
 
 (defn response [status body & {:as headers}]
   {:status status :body body :headers headers})
@@ -19,14 +25,6 @@
 (def accepted (partial response 202))
 (def no-content (partial response 204))
 (def not-found (partial response 404))
-
-(def echo
-  {:name :echo
-   :enter
-         (fn [context]
-           (let [request (:request context)
-                 response (ok context)]
-             (assoc context :response response)))})
 
 
 (defn reader [db schema]
@@ -96,7 +94,7 @@
 
 
 
-(def api-name "document")
+(defconfig ^String api-name "document")
 
 (defn routes [db schema]
   (s/with-fn-validation
@@ -109,17 +107,17 @@
                                       :url         "http://swagger.io"}}]}
           rs #{
                [(format "/%s/:id" api-name) :put [(capi/body-params) (writer db schema)] :route-name :create]
-               [(format "/%s/:id" api-name) :get [(capi/negotiate-response) #_(capi/validate-response) (reader db schema)] :route-name :read]
+               [(format "/%s/:id" api-name) :get [(capi/negotiate-response) (reader db schema)] :route-name :read]
                [(format "/%s/:id" api-name) :post [(capi/body-params) (updater db schema)] :route-name :update]
                [(format "/%s/:id" api-name) :delete (deleter db) :route-name :delete]
+               ["/swagger.json" :get capi/swagger-json]
+               ["/*resource" :get capi/swagger-ui]
                }]
       (-> rs
           route/expand-routes
           (api/update-handler-swagger (api/comp->> api/default-operation-ids
                                                    api/default-empty-parameters))
-          (sw.doc/with-swagger (merge {:basePath ""} doc))))
-  )
-)
+          (sw.doc/with-swagger (merge {:basePath ""} doc))))))
 
 
 (defn service-map [rtes]
@@ -127,17 +125,21 @@
    ::http/type   :jetty
    ::http/port   8890})
 
-(defn start []
-  (http/start (http/create-server service-map)))
+(defn start [db schema]
+  (http/start (http/create-server (service-map (routes db schema)))))
 
 ;; For interactive development
 (defonce server (atom nil))
 
 (defn start-dev []
-  (reset! server
-          (http/start (http/create-server
-                        (assoc service-map
-                          ::http/join? false)))))
+  (let [backend (MemoryBackend.)
+        db-server (MongoServer. backend)
+        client (mg/connect (ServerAddress. ^InetSocketAddress (.bind db-server)) (mg/mongo-options {}))
+        db (mg/get-db client "test")]
+    (reset! server
+            (http/start (http/create-server
+                          (assoc (service-map (routes db gs/Game))
+                            ::http/join? false))))))
 
 (defn stop-dev []
   (http/stop @server))
