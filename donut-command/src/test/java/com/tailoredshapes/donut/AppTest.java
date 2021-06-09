@@ -59,4 +59,29 @@ public class AppTest {
         given().port(port).when().get("/test/1010")
                 .then().body("name", equalTo("Tom")).statusCode(200);
     }
+
+    @Test
+    public void testUpdate() {
+        Stash doc = stash("name", "Tom");
+        given().port(port).body(doc.toJSONString())
+                .when().put("/test/1010").then().statusCode(200);
+
+        Stash doc2 = stash("name", "Bob");
+        given().body(doc2.toJSONString()).port(port).when().post("/test/1010")
+                .then().body("name", equalTo("Tom")).statusCode(200);
+
+        given().port(port).when().get("/test/1010")
+                .then().body("name", equalTo("Bob")).statusCode(200);
+    }
+
+    @Test
+    public void testDelete() {
+        Stash doc = stash("name", "Tom");
+        given().port(port).body(doc.toJSONString())
+                .when().put("/test/1010").then().statusCode(200);
+
+        given().port(port).when().delete("/test/1010").then().statusCode(200);
+        given().port(port).when().get("/test/1010")
+                .then().statusCode(404);
+    }
 }
