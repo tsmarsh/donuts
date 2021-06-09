@@ -11,6 +11,7 @@ import org.bson.Document;
 import org.junit.*;
 
 import java.net.InetSocketAddress;
+import java.time.Instant;
 
 import static com.tailoredshapes.stash.Stash.stash;
 import static org.junit.Assert.*;
@@ -63,6 +64,19 @@ public class MongoRepositoryTest {
     }
 
     @Test
+    public void cannotWriteADocumentIfItExists(){
+        Stash stash = stash("name", "Tom");
+
+        MongoRepository mr = new MongoRepository(db, "test");
+        mr.writeDoc(1010, stash);
+        mr.writeDoc(1010, stash.assoc("name", "Bob"));
+
+        Stash result = mr.readDoc(1010);
+
+        assertEquals("Tom", result.get("name"));
+    }
+
+    @Test
     public void canUpdateADocument() {
         Stash stash = stash("name", "Tom");
 
@@ -72,6 +86,28 @@ public class MongoRepositoryTest {
 
         Stash result = mr.readDoc(1010);
 
+        assertEquals("Bob", result.get("name"));
+    }
+
+    @Test
+    public void canReadTheOldVersionOfADoc() {
+        Stash stash = stash("name", "Tom");
+
+        MongoRepository mr = new MongoRepository(db, "test");
+        mr.writeDoc(1010, stash);
+        Instant then = Instant.now();
+
+        mr.changeDoc(1010, stash.assoc("name", "Bob"));
+
+        Instant now = Instant.now();
+
+        Stash result = mr.readDoc(1010);
+        assertEquals("Bob", result.get("name"));
+        Stash oldResult = mr.readDoc(1010, then.toEpochMilli());
+
+        assertEquals("Tom", oldResult.get("name"));
+
+        Stash newerResult = mr.readDoc(1010, now.toEpochMilli());
         assertEquals("Bob", result.get("name"));
     }
 
