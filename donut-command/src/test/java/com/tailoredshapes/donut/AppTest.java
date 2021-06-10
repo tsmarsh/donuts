@@ -36,7 +36,8 @@ public class AppTest {
         MongoClient client = new MongoClient(new ServerAddress(serverAddress));
         db = client.getDatabase("testdb");
 
-        app = new App(port, "test", new MongoRepository(db, "test"));
+
+        app = new App(port, "/test", new Routes(new MongoRepository(db, "test")));
     }
 
     @AfterClass
