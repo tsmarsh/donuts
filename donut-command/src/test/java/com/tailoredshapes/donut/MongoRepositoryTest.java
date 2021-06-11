@@ -82,6 +82,8 @@ public class MongoRepositoryTest {
 
         MongoRepository mr = new MongoRepository(db, "test");
         mr.writeDoc(1010, stash);
+        mr.changeDoc(1010, stash.assoc("name", "Alice"));
+        mr.changeDoc(1010, stash.assoc("name", "Charlie"));
         mr.changeDoc(1010, stash.assoc("name", "Bob"));
 
         Stash result = mr.readDoc(1010);

@@ -37,7 +37,7 @@ public class AppTest {
         db = client.getDatabase("testdb");
 
 
-        app = new App(port, "/test", new Routes(new MongoRepository(db, "test")));
+        app = new App(port, new Routes(new MongoRepository(db, "test")));
     }
 
     @AfterClass

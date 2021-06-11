@@ -12,13 +12,11 @@ public class DonutEndpoint<T> implements Endpoint {
 
     Logger log = Logger.getLogger(DonutEndpoint.class.getName());
 
-    private final String prefix;
     private final Class<T> clazz;
     private final Routes routes;
 
-    public DonutEndpoint(Routes routes, String prefix, Class<T> clazz) {
+    public DonutEndpoint(Routes routes, Class<T> clazz) {
         this.routes = routes;
-        this.prefix = prefix;
         this.clazz = clazz;
     }
 

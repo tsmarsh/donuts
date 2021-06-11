@@ -1,25 +1,21 @@
 package com.tailoredshapes.donut;
 
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Collation;
 import com.tailoredshapes.stash.Stash;
 import org.bson.Document;
-import org.json.simple.JSONObject;
 
-import javax.print.Doc;
 import java.time.Instant;
-import java.util.Iterator;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
 
 import static com.tailoredshapes.underbar.UnderBar.list;
-import static com.tailoredshapes.underbar.UnderBar.optional;
 
 public class MongoRepository implements Repository {
 
 
-    private MongoDatabase db;
-    private String collection;
+    private final String TIMESTAMP_KEY = "_timestamp";
+    private final String VERSION_KEY = "_version";
+    private final MongoDatabase db;
+    private final String collection;
 
     public MongoRepository(MongoDatabase db, String collection) {
         this.db = db;
@@ -34,17 +30,23 @@ public class MongoRepository implements Repository {
         if (existing.isPresent()) {
             return new Stash();
         }
-        document.append("timestamp", Instant.now().toEpochMilli());
+        document.append(TIMESTAMP_KEY, Instant.now().toEpochMilli());
+        document.append(VERSION_KEY, 0);
+        
         db.getCollection(collection).insertOne(document);
         return Stash.parseJSON(document.toJson());
     }
 
     @Override
     public Stash readDoc(int id) {
-        var doc = Optional.ofNullable(db.getCollection(collection).find(new Document()
-                .append("id", id)).sort(new Document("timestamp", -1)).first());
+        var docs = list(db.getCollection(collection).find(new Document()
+                .append("id", id)).sort(new Document(TIMESTAMP_KEY, -1)));
 
-        return Stash.parseJSON(doc.orElse(new Document()).toJson());
+        if(docs.isEmpty()){
+            return new Stash();
+        }else {
+            return Stash.parseJSON(docs.get(0).toJson());
+        }
     }
 
     @Override
@@ -52,8 +54,8 @@ public class MongoRepository implements Repository {
 
         Optional<Document> doc = Optional.ofNullable(db.getCollection(collection).find(new Document()
                 .append("id", id)
-                .append("timestamp", new Document("$lte", atEpochMillis)))
-                .sort(new Document("timestamp", 1))
+                .append(TIMESTAMP_KEY, new Document("$lte", atEpochMillis)))
+                .sort(new Document(VERSION_KEY, 1))
                 .first());
 
         return Stash.parseJSON(doc.orElse(new Document()).toJson());
@@ -61,14 +63,15 @@ public class MongoRepository implements Repository {
 
     @Override
     public Stash changeDoc(int id, Stash body) {
-        Document doc = Document.parse(body.toJSONString());
-        doc.append("id", id);
-        doc.append("timestamp", Instant.now().toEpochMilli());
+        Stash old = readDoc(id);
 
+        Document document = Document.parse(body.toJSONString());
+        document.append("id", id);
+        document.append(VERSION_KEY, old.asInteger(VERSION_KEY) + 1);
+        document.append(TIMESTAMP_KEY, Instant.now().toEpochMilli());
 
-        db.getCollection(collection).insertOne(doc);
-
-        return Stash.parseJSON(doc.toJson());
+        db.getCollection(collection).insertOne(document);
+        return Stash.parseJSON(document.toJson());
     }
 
     @Override
