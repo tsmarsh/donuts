@@ -17,7 +17,6 @@ EXPOSE 8888
 
 ENV DB_NAME=docker
 ENV DB_ADDRESS=docker:27017
-ENV DB_NAME=donut
 ENV PORT=8888
 
 COPY --from=0 /usr/src/donut/target/*-jar-with-dependencies.jar /usr/src/donut/server.jar

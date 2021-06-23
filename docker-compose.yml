@@ -5,10 +5,19 @@ services:
     image: tsmarsh/games
     restart: unless-stopped
     ports:
-      - 8888:80
+      - 80:8888
     environment:
      - DB_NAME=dev
      - DB_ADDRESS=mongodb:27017
+  gamescommand:
+    image: tsmarsh/gamescommand
+    restart: unless-stopped
+    ports:
+      - 81:8888
+    environment:
+      - DB_NAME=dev
+      - DB_ADDRESS=mongodb:27017
+      - PORT=8888
   mongodb:
     image: mongo
     ports:
